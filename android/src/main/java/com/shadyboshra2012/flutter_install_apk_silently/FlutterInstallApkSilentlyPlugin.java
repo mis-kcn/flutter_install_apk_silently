@@ -3,9 +3,12 @@ package com.shadyboshra2012.flutter_install_apk_silently;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.PowerManager;
-
+import android.util.Log;
 import androidx.annotation.NonNull;
-
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.IOException;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -23,6 +26,7 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
     /// Methods name which detect which it called from Flutter.
     private static final String METHOD_INSTALL_APK = "installAPK";
     private static final String METHOD_REBOOT_DEVICE = "rebootDevice";
+    private static final String METHOD_UPDATE_TIMEZONE = "updateTimezone";
 
     /// The MethodChannel that will the communication between Flutter and native Android
     ///
@@ -64,12 +68,31 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
                 break;
             case METHOD_REBOOT_DEVICE:
                 try {
-                    PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-                    assert pm != null;
-                    pm.reboot(null);
+                    Process process = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot -p"});
+                    process.waitFor();
+                    if (process.exitValue() == 0) {
+                        result.success(true);
+                    } else {
+                        String errorDetails = convertStreamToString(process.getErrorStream());
+                        result.error("0",  process.exitValue() + " Failed to reboot", errorDetails);
+                    }
                     result.success(true);
                 } catch (Exception ex) {
-                    // Return an error.
+                    result.error("0",  ex.getMessage(), ex.getLocalizedMessage());
+                }
+                break;
+            case METHOD_UPDATE_TIMEZONE:
+                try {
+                    String command = "setprop persist.sys.timezone " + call.argument("tz") + ";";
+                    Process process = Runtime.getRuntime().exec(new String[]{"su", "-c", command});
+                    process.waitFor();
+                    if (process.exitValue() == 0) {
+                        result.success(true);
+                    } else {
+                        String errorDetails = convertStreamToString(process.getErrorStream());
+                        result.error("0",  process.exitValue() + " Failed to install", errorDetails);
+                    }
+                } catch (Exception ex) {
                     result.error("0",  ex.getMessage(), ex.getLocalizedMessage());
                 }
                 break;
@@ -82,5 +105,26 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
     @Override
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
         channel.setMethodCallHandler(null);
+    }
+
+    private String convertStreamToString(InputStream is) {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        StringBuilder sb = new StringBuilder();
+
+        String line = null;
+        try {
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append('\n');
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                is.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return sb.toString();
     }
 }

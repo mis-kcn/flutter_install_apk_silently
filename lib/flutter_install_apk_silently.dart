@@ -11,6 +11,7 @@ class FlutterInstallApkSilently {
   /// Methods name which detect which it called from Flutter.
   static const String _METHOD_INSTALL_APK = "installAPK";
   static const String _METHOD_REBOOT_DEVICE = "rebootDevice";
+  static const String _METHOD_UPDATE_TIMEZONE = "updateTimezone";
 
   /// Initialize the channel
   static const MethodChannel _channel = const MethodChannel(_CHANNEL_NAME);
@@ -39,6 +40,25 @@ class FlutterInstallApkSilently {
         return await _channel.invokeMethod(_METHOD_REBOOT_DEVICE);
       } on PlatformException catch (e) {
         throw "Reboot Device Error Occurred: Code: ${e.code}. Message: ${e.message}. Details: ${e.details}";
+      }
+    } else {
+      // Return false if not Android.
+      return false;
+    }
+  }
+
+  /// Update Timezone
+  static Future<bool?> updateTimezone(String tz) async {
+    if (Platform.isAndroid) {
+      try {
+        return await _channel.invokeMethod(
+          _METHOD_UPDATE_TIMEZONE,
+          <String, String>{'tz': tz},
+        );
+      } on PlatformException catch (e) {
+        throw "Update Timezone Error Occurred: Code: ${e.code}. Message: ${e.message}. Details: ${e.details}";
+      } catch (e) {
+        throw "Update Timezone Error Occurred: $e";
       }
     } else {
       // Return false if not Android.
