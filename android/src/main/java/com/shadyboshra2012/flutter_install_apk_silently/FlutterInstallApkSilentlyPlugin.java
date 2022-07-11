@@ -68,7 +68,7 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
                 break;
             case METHOD_REBOOT_DEVICE:
                 try {
-                    Process process = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot -p"});
+                    Process process = Runtime.getRuntime().exec(new String[]{"su", "-c", "am start -a android.intent.action.REBOOT"});
                     process.waitFor();
                     if (process.exitValue() == 0) {
                         result.success(true);
