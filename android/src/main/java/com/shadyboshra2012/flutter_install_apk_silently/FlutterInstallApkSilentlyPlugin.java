@@ -2,9 +2,13 @@ package com.shadyboshra2012.flutter_install_apk_silently;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.PowerManager;
+import android.net.DhcpInfo;
+import android.net.LinkAddress;
+import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -15,6 +19,11 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
+import android.net.ConnectivityManager;
+import android.net.LinkProperties;
+import android.net.wifi.WifiManager;
+import java.lang.Exception;
+import java.util.HashMap;
 
 /**
  * FlutterInstallApkSilentlyPlugin
@@ -27,6 +36,7 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
     private static final String METHOD_INSTALL_APK = "installAPK";
     private static final String METHOD_REBOOT_DEVICE = "rebootDevice";
     private static final String METHOD_UPDATE_TIMEZONE = "updateTimezone";
+    private static final String METHOD_FETCH_NETWORK_STATS = "fetchNetworkStats";
 
     /// The MethodChannel that will the communication between Flutter and native Android
     ///
@@ -59,6 +69,7 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
         channel.setMethodCallHandler(new FlutterInstallApkSilentlyPlugin());
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
         switch (call.method) {
@@ -96,6 +107,35 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
                     result.error("0",  ex.getMessage(), ex.getLocalizedMessage());
                 }
                 break;
+            case METHOD_FETCH_NETWORK_STATS:
+                try {
+                    HashMap<String, String> hashMap = new HashMap<String, String>();
+                    WifiManager iX = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                    DhcpInfo dhcpInfo = iX.getDhcpInfo();
+
+                    String ownIp = convertIntegerToString(dhcpInfo.ipAddress);
+                    hashMap.put("ip", convertIntegerToString(dhcpInfo.ipAddress));
+                    hashMap.put("dns1", convertIntegerToString(dhcpInfo.dns1));
+                    hashMap.put("dns2", convertIntegerToString(dhcpInfo.dns2));
+                    hashMap.put("gateway", convertIntegerToString(dhcpInfo.gateway));
+
+                    LinkProperties link =  connectivityManager.getLinkProperties(connectivityManager.getActiveNetwork());
+
+                    for (LinkAddress linkAddress: link.getLinkAddresses()) {
+                        if(linkAddress.getAddress().toString().contains(ownIp)) {
+                            hashMap.put("mask", String.valueOf(linkAddress.getPrefixLength()));
+                        }
+                    }
+
+                    result.success(hashMap);
+                } catch(Exception ex) {
+                    ex.printStackTrace();
+                    result.error("0",  ex.getMessage(), ex.getLocalizedMessage());
+                }
+
+
+                break;
             default:
                 result.notImplemented();
                 break;
@@ -105,6 +145,15 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
     @Override
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
         channel.setMethodCallHandler(null);
+    }
+
+    @SuppressLint("DefaultLocale")
+    private String convertIntegerToString(int ip) {
+        return String.format("%d.%d.%d.%d",
+                (ip & 0xff),
+                (ip >> 8 & 0xff),
+                (ip >> 16 & 0xff),
+                (ip >> 24 & 0xff));
     }
 
     private String convertStreamToString(InputStream is) {

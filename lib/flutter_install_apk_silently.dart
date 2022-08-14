@@ -12,6 +12,7 @@ class FlutterInstallApkSilently {
   static const String _METHOD_INSTALL_APK = "installAPK";
   static const String _METHOD_REBOOT_DEVICE = "rebootDevice";
   static const String _METHOD_UPDATE_TIMEZONE = "updateTimezone";
+  static const String _METHOD_FETCH_NETWORK_STATS = "fetchNetworkStats";
 
   /// Initialize the channel
   static const MethodChannel _channel = const MethodChannel(_CHANNEL_NAME);
@@ -63,6 +64,17 @@ class FlutterInstallApkSilently {
     } else {
       // Return false if not Android.
       return false;
+    }
+  }
+
+  /// Fetch network stats
+  static Future<Map<String, dynamic>> fetchNetworkStats() async {
+    if (Platform.isAndroid) {
+      return Map<String, dynamic>.from(await _channel.invokeMethod(
+        _METHOD_FETCH_NETWORK_STATS,
+      ));
+    } else {
+      throw UnimplementedError();
     }
   }
 }
