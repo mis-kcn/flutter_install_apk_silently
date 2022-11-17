@@ -23,7 +23,11 @@ import android.net.ConnectivityManager;
 import android.net.LinkProperties;
 import android.net.wifi.WifiManager;
 import java.lang.Exception;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * FlutterInstallApkSilentlyPlugin
@@ -122,11 +126,14 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
 
                     LinkProperties link =  connectivityManager.getLinkProperties(connectivityManager.getActiveNetwork());
 
+                    Set<String> nmaskList = new HashSet<String>();
                     for (LinkAddress linkAddress: link.getLinkAddresses()) {
-                        if(linkAddress.getAddress().toString().contains(ownIp)) {
-                            hashMap.put("mask", String.valueOf(linkAddress.getPrefixLength()));
+                        String nm = String.valueOf(linkAddress.getPrefixLength());
+                        if(!nm.equals("64")) {
+                            nmaskList.add(nm);
                         }
                     }
+                    hashMap.put("mask", String.join(",", nmaskList));
 
                     result.success(hashMap);
                 } catch(Exception ex) {
