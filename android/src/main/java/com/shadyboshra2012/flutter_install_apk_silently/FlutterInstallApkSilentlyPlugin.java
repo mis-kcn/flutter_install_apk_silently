@@ -120,9 +120,48 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
 
                     String ownIp = convertIntegerToString(dhcpInfo.ipAddress);
                     hashMap.put("ip", convertIntegerToString(dhcpInfo.ipAddress));
-                    hashMap.put("dns1", convertIntegerToString(dhcpInfo.dns1));
-                    hashMap.put("dns2", convertIntegerToString(dhcpInfo.dns2));
-                    hashMap.put("gateway", convertIntegerToString(dhcpInfo.gateway));
+
+                    try {
+                        Process dnsOneProcess = Runtime.getRuntime().exec(new String[]{"su", "-c", "getprop net.dns1"});
+                        BufferedReader bufferedReader = new BufferedReader(
+                            new InputStreamReader(dnsOneProcess.getInputStream()));
+                        StringBuilder log = new StringBuilder();
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            log.append(line);
+                        }
+                        hashMap.put("dns1", log.toString());
+                    } catch(Exception ex) {
+                        hashMap.put("dns1", "Unable");
+                    }
+
+                    try {
+                        Process dnsTwoProcess = Runtime.getRuntime().exec(new String[]{"su", "-c", "getprop net.dns2"});
+                        BufferedReader bufferedReader = new BufferedReader(
+                            new InputStreamReader(dnsTwoProcess.getInputStream()));
+                        StringBuilder log = new StringBuilder();
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            log.append(line);
+                        }
+                        hashMap.put("dns2", log.toString());
+                    } catch(Exception ex) {
+                        hashMap.put("dns2", "Unable");
+                    }
+
+                    try {
+                        Process gatewayProcess = Runtime.getRuntime().exec(new String[]{"su", "-c", "ip route get 8.8.8.8 | grep via | cut -d\\  -f3"});
+                        BufferedReader bufferedReader = new BufferedReader(
+                            new InputStreamReader(gatewayProcess.getInputStream()));
+                        StringBuilder log = new StringBuilder();
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            log.append(line);
+                        }
+                        hashMap.put("gateway", log.toString());
+                    } catch(Exception ex) {
+                        hashMap.put("gateway", "Unable");
+                    }
 
                     LinkProperties link =  connectivityManager.getLinkProperties(connectivityManager.getActiveNetwork());
 
