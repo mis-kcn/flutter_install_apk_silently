@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.DhcpInfo;
 import android.net.LinkAddress;
+import android.net.wifi.WifiInfo;
 import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
@@ -162,6 +163,8 @@ public class FlutterInstallApkSilentlyPlugin implements FlutterPlugin, MethodCal
                     } catch(Exception ex) {
                         hashMap.put("gateway", "Unable");
                     }
+                    WifiInfo wifiInfo = iX.getConnectionInfo();
+                    hashMap.put("rssi", Integer.toString(wifiInfo.getRssi()));
 
                     LinkProperties link =  connectivityManager.getLinkProperties(connectivityManager.getActiveNetwork());
 
